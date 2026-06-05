@@ -1,51 +1,58 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { login, isAuthenticated } from "@/lib/auth";
 import { Flame, Eye, EyeOff, Loader2 } from "lucide-react";
-
-const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL!;
-const CALLBACK_URL = typeof window !== "undefined"
-  ? `${window.location.origin}/auth/callback`
-  : "";
 import Link from "next/link";
 
-export default function LoginPage() {
+const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL!;
+
+function LoginForm() {
   const router = useRouter();
-  const [form, setForm] = useState({ email: "", password: "" });
+  const params = useSearchParams();
+  const [form, setForm] = useState({ identity: "", password: "" });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (isAuthenticated()) router.replace("/dashboard");
-  }, [router]);
+    const err = params.get("error");
+    if (err === "cancelled") setError("Inicio de sesión cancelado.");
+  }, [router, params]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      await login(form.email, form.password);
+      await login(form.identity, form.password);
       router.push("/dashboard");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al iniciar sesión");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error al iniciar sesión";
+      if (msg.includes("verify")) {
+        setError("Debes verificar tu email antes de ingresar. Revisa tu bandeja de entrada.");
+      } else {
+        setError("Credenciales inválidas. Verifica tu email o contraseña.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  const googleURL = `${AUTH_URL}/auth/google?redirect_uri=${encodeURIComponent(
+    typeof window !== "undefined" ? window.location.origin + "/auth/callback" : "https://svasoft.cl/auth/callback"
+  )}`;
+
   return (
     <main className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-6">
-      {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-amber-500/8 rounded-full blur-[100px]" />
       </div>
 
       <div className="relative w-full max-w-sm">
-        {/* Logo */}
-        <Link href="/" className="flex items-center justify-center gap-2 mb-10 group">
+        <Link href="/" className="flex items-center justify-center gap-2 mb-10">
           <Flame size={22} className="text-amber-400" />
           <span className="text-amber-400 font-bold text-xl">Svarog</span>
           <span className="text-gray-500 text-sm">EcoSystem</span>
@@ -53,26 +60,29 @@ export default function LoginPage() {
 
         <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-8">
           <h1 className="text-xl font-bold text-white mb-1">Iniciar sesión</h1>
-          <p className="text-gray-500 text-sm mb-8">
-            Accede a tus servicios del ecosistema Svarog
-          </p>
+          <p className="text-gray-500 text-sm mb-8">Accede a tus servicios del ecosistema</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1.5">Email</label>
+              <label className="block text-sm text-gray-400 mb-1.5">Usuario o email</label>
               <input
-                type="email"
+                type="text"
                 required
-                autoComplete="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                autoComplete="username"
+                value={form.identity}
+                onChange={(e) => setForm({ ...form, identity: e.target.value })}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-amber-500/50 transition-colors"
-                placeholder="tu@email.com"
+                placeholder="juanito o juanito@email.com"
               />
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-1.5">Contraseña</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm text-gray-400">Contraseña</label>
+                <Link href="/forgot-password" className="text-xs text-gray-600 hover:text-amber-400 transition-colors">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
               <div className="relative">
                 <input
                   type={showPass ? "text" : "password"}
@@ -104,26 +114,18 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-60 disabled:cursor-not-allowed text-black font-semibold text-sm px-6 py-3 rounded-lg transition-colors mt-2"
             >
-              {loading ? (
-                <>
-                  <Loader2 size={15} className="animate-spin" />
-                  Ingresando...
-                </>
-              ) : (
-                "Ingresar"
-              )}
+              {loading ? <><Loader2 size={15} className="animate-spin" /> Ingresando...</> : "Ingresar"}
             </button>
           </form>
-        </div>
 
-        <div className="mt-4">
-          <div className="relative flex items-center gap-3 my-2">
+          <div className="relative flex items-center gap-3 my-5">
             <div className="flex-1 h-px bg-white/10" />
             <span className="text-xs text-gray-600">o</span>
             <div className="flex-1 h-px bg-white/10" />
           </div>
+
           <a
-            href={`${AUTH_URL}/auth/google?redirect_uri=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin + "/auth/callback" : "")}`}
+            href={googleURL}
             className="flex items-center justify-center gap-3 w-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-all"
           >
             <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
@@ -138,11 +140,15 @@ export default function LoginPage() {
 
         <p className="text-center text-xs text-gray-600 mt-6">
           ¿No tienes cuenta?{" "}
-          <Link href="/#contacto" className="text-amber-400 hover:text-amber-300 transition-colors">
-            Contáctanos
+          <Link href="/register" className="text-amber-400 hover:text-amber-300 transition-colors">
+            Crear cuenta gratis
           </Link>
         </p>
       </div>
     </main>
   );
+}
+
+export default function LoginPage() {
+  return <Suspense><LoginForm /></Suspense>;
 }

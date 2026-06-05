@@ -4,7 +4,6 @@ import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
-// Reutilizamos la misma key que usa auth.ts
 const TOKEN_KEY = "svarog_token";
 
 function CallbackHandler() {
@@ -14,6 +13,7 @@ function CallbackHandler() {
   useEffect(() => {
     const token = params.get("sso_token");
     const error = params.get("error");
+    const firstLogin = params.get("first_login") === "true";
 
     if (error === "cancelled") {
       router.replace("/login?error=cancelled");
@@ -26,9 +26,13 @@ function CallbackHandler() {
     }
 
     localStorage.setItem(TOKEN_KEY, token);
-    // Limpiar el token de la URL
     window.history.replaceState({}, "", "/auth/callback");
-    router.replace("/dashboard");
+
+    if (firstLogin) {
+      router.replace("/onboarding");
+    } else {
+      router.replace("/dashboard");
+    }
   }, [router, params]);
 
   return (

@@ -5,13 +5,14 @@ export interface TokenClaims {
   user_id: number;
   username: string;
   roles: string[];
+  profile_complete: boolean;
 }
 
-export async function login(email: string, password: string): Promise<string> {
+export async function login(identity: string, password: string): Promise<string> {
   const res = await fetch(`${AUTH_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ identity, password }),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -20,6 +21,38 @@ export async function login(email: string, password: string): Promise<string> {
   const { token } = await res.json();
   localStorage.setItem(TOKEN_KEY, token);
   return token;
+}
+
+export async function register(username: string, email: string, password: string): Promise<void> {
+  const res = await fetch(`${AUTH_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, email, password }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Error al crear la cuenta");
+  }
+}
+
+export async function completeOnboarding(
+  token: string,
+  name: string,
+  phone: string,
+  marketingConsent: boolean
+): Promise<string> {
+  const res = await fetch(`${AUTH_URL}/auth/onboarding`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify({ name, phone, marketing_consent: marketingConsent }),
+  });
+  if (!res.ok) throw new Error("Error al guardar el perfil");
+  const { token: newToken } = await res.json();
+  localStorage.setItem(TOKEN_KEY, newToken);
+  return newToken;
 }
 
 export function logout() {
@@ -37,7 +70,6 @@ export function getClaims(): TokenClaims | null {
   try {
     const payload = token.split(".")[1];
     const decoded = JSON.parse(atob(payload));
-    // Check expiry
     if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) {
       logout();
       return null;
@@ -46,6 +78,7 @@ export function getClaims(): TokenClaims | null {
       user_id: decoded.user_id,
       username: decoded.username,
       roles: decoded.roles ?? [],
+      profile_complete: decoded.profile_complete ?? true,
     };
   } catch {
     return null;
