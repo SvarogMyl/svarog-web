@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getClaims, logout, type TokenClaims } from "@/lib/auth";
+import { getClaims, logout, getToken, type TokenClaims } from "@/lib/auth";
 import { SERVICES, statusLabel, type ServiceStatus } from "@/lib/services";
-import { Flame, LogOut, ExternalLink, ChevronRight } from "lucide-react";
-import { getToken } from "@/lib/auth";
+import { Flame, LogOut, ExternalLink, ChevronRight, User } from "lucide-react";
 import Link from "next/link";
 
 const statusStyles: Record<ServiceStatus, string> = {
@@ -53,6 +52,13 @@ export default function DashboardPage() {
               Hola,{" "}
               <span className="text-white font-medium">{user.username}</span>
             </span>
+            <Link
+              href="/dashboard/perfil"
+              className="flex items-center gap-1.5 text-gray-500 hover:text-amber-400 text-xs transition-colors"
+            >
+              <User size={13} />
+              Perfil
+            </Link>
             <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 text-gray-500 hover:text-red-400 text-xs transition-colors"

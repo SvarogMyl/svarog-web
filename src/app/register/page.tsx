@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { register } from "@/lib/auth";
-import { Flame, Eye, EyeOff, Loader2, CheckCircle2 } from "lucide-react";
+import { Flame, Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function RegisterPage() {
@@ -12,8 +12,6 @@ export default function RegisterPage() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [done, setDone] = useState(false);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -24,7 +22,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register(form.username, form.email, form.password);
-      setDone(true);
+      router.push(`/verify?email=${encodeURIComponent(form.email)}`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error al crear la cuenta";
       if (msg.includes("already")) {
@@ -36,28 +34,6 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
-
-  if (done) {
-    return (
-      <main className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-6">
-        <div className="w-full max-w-sm text-center">
-          <CheckCircle2 size={48} className="text-green-400 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-white mb-2">¡Cuenta creada!</h1>
-          <p className="text-gray-400 text-sm mb-6">
-            Te enviamos un email de verificación a{" "}
-            <span className="text-white font-medium">{form.email}</span>.
-            Revisa tu bandeja de entrada y haz click en el enlace para activar tu cuenta.
-          </p>
-          <Link
-            href="/login"
-            className="inline-block text-sm text-amber-400 hover:text-amber-300 transition-colors"
-          >
-            Volver al login
-          </Link>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-6">
