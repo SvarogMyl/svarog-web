@@ -3,6 +3,7 @@
 import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { issueSSO } from "@/lib/auth";
 
 const TOKEN_KEY = "svarog_token";
 
@@ -27,6 +28,19 @@ function CallbackHandler() {
 
     localStorage.setItem(TOKEN_KEY, token);
     window.history.replaceState({}, "", "/auth/callback");
+
+    const ssoRedirect = sessionStorage.getItem("sso_redirect");
+    if (ssoRedirect) {
+      sessionStorage.removeItem("sso_redirect");
+      issueSSO(token)
+        .then((code) => {
+          window.location.href = `${ssoRedirect}?code=${code}`;
+        })
+        .catch(() => {
+          window.location.href = `${ssoRedirect}?sso_token=${token}`;
+        });
+      return;
+    }
 
     if (firstLogin) {
       router.replace("/onboarding");

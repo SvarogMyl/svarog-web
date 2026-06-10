@@ -3,8 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { register } from "@/lib/auth";
-import { Flame, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Flame, Eye, EyeOff, Loader2, Check, X } from "lucide-react";
 import Link from "next/link";
+
+function passwordRules(password: string) {
+  return {
+    length: password.length >= 8,
+    upper: /[A-Z]/.test(password),
+    digit: /[0-9]/.test(password),
+    special: /[!@#$%^&*()\-_=+\[\]{}|;':",.<>/?]/.test(password),
+  };
+}
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -12,11 +21,15 @@ export default function RegisterPage() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const rules = passwordRules(form.password);
+  const allRulesMet = Object.values(rules).every(Boolean);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (form.password.length < 8) {
-      setError("La contraseña debe tener al menos 8 caracteres.");
+    if (!allRulesMet) {
+      setError("La contraseña no cumple con los requisitos.");
       return;
     }
     setLoading(true);
@@ -90,7 +103,6 @@ export default function RegisterPage() {
                 <input
                   type={showPass ? "text" : "password"}
                   required
-                  minLength={8}
                   autoComplete="new-password"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
@@ -105,6 +117,22 @@ export default function RegisterPage() {
                   {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
+
+              {form.password.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {[
+                    { ok: rules.length, label: "Mínimo 8 caracteres" },
+                    { ok: rules.upper, label: "Al menos 1 mayúscula" },
+                    { ok: rules.digit, label: "Al menos 1 número" },
+                    { ok: rules.special, label: "Al menos 1 carácter especial (!@#$%...)" },
+                  ].map(({ ok, label }) => (
+                    <li key={label} className={`flex items-center gap-1.5 text-xs ${ok ? "text-green-400" : "text-gray-500"}`}>
+                      {ok ? <Check size={11} /> : <X size={11} />}
+                      {label}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             {error && (

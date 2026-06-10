@@ -165,3 +165,13 @@ export async function updateProfile(authToken: string, name: string, phone: stri
   const { token } = await res.json();
   localStorage.setItem(TOKEN_KEY, token);
 }
+
+export async function issueSSO(authToken: string): Promise<string> {
+  const res = await fetch(`${AUTH_URL}/auth/sso/issue`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${authToken}` },
+  });
+  if (!res.ok) throw new Error("Error al generar código SSO");
+  const { code } = await res.json();
+  return code;
+}

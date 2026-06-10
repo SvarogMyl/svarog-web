@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { login, isAuthenticated, getToken, getClaims } from "@/lib/auth";
+import { login, isAuthenticated, getToken, getClaims, issueSSO } from "@/lib/auth";
 import { Flame, Eye, EyeOff, Loader2, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
@@ -24,7 +24,11 @@ function LoginForm() {
         const token = getToken();
         const claims = getClaims();
         if (token && claims?.profile_complete) {
-          window.location.href = `${redirect}?sso_token=${token}`;
+          issueSSO(token).then((code) => {
+            window.location.href = `${redirect}?code=${code}`;
+          }).catch(() => {
+            window.location.href = `${redirect}?sso_token=${token}`;
+          });
           return;
         }
       }
@@ -41,12 +45,20 @@ function LoginForm() {
     setError("");
     setLoading(true);
     try {
-      await login(form.identity, form.password);
+      const token = await login(form.identity, form.password);
+      const redirect = params.get("redirect");
+      if (redirect) {
+        const code = await issueSSO(token);
+        window.location.href = `${redirect}?code=${code}`;
+        return;
+      }
       router.push("/dashboard");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error al iniciar sesión";
       if (msg.includes("verify")) {
         setError("Debes verificar tu email antes de ingresar. Revisa tu bandeja de entrada.");
+      } else if (msg.includes("locked") || msg.includes("429") || msg.includes("Too many")) {
+        setError("Demasiados intentos fallidos. Intenta más tarde.");
       } else {
         setError("Credenciales inválidas. Verifica tu email o contraseña.");
       }
@@ -146,6 +158,10 @@ function LoginForm() {
 
           <a
             href={googleURL}
+            onClick={() => {
+              const redirect = params.get("redirect");
+              if (redirect) sessionStorage.setItem("sso_redirect", redirect);
+            }}
             className="flex items-center justify-center gap-3 w-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-all"
           >
             <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
