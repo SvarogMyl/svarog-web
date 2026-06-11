@@ -25,7 +25,7 @@ export interface PaginatedArticles {
 export async function getArticles(page = 1, limit = 9): Promise<PaginatedArticles> {
   const res = await fetch(
     `${API_URL}/news?tenant=${TENANT}&page=${page}&limit=${limit}`,
-    { next: { revalidate: 60 } }
+    { cache: 'no-store' }
   );
   if (!res.ok) return { data: [], total: 0, page, limit };
   const json = await res.json();
@@ -36,7 +36,7 @@ export async function getArticles(page = 1, limit = 9): Promise<PaginatedArticle
 export async function getArticle(slug: string): Promise<Article | null> {
   const res = await fetch(
     `${API_URL}/news/${slug}?tenant=${TENANT}`,
-    { next: { revalidate: 60 } }
+    { cache: 'no-store' }
   );
   if (!res.ok) return null;
   return res.json();

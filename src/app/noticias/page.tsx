@@ -4,6 +4,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Rss } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: "Noticias — Svarog EcoSystem",
   description: "Artículos sobre tecnología, IA y desarrollo de software desde el ecosistema Svarog.",
