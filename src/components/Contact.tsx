@@ -1,21 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { Send, Mail, GitBranch } from "lucide-react";
+import { Send, Mail, GitBranch, Loader2 } from "lucide-react";
 
 export default function Contact() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
-  const [sent, setSent] = useState(false);
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Por ahora abre el cliente de email — en v2 conectamos a lab-mail-service
-    const subject = encodeURIComponent(`Contacto desde svasoft.cl — ${form.name}`);
-    const body = encodeURIComponent(
-      `Nombre: ${form.name}\nEmail: ${form.email}\n\n${form.message}`
-    );
-    window.open(`mailto:yannickvalderasm@gmail.com?subject=${subject}&body=${body}`);
-    setSent(true);
+    setStatus("sending");
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      if (!res.ok) throw new Error("failed");
+      setStatus("sent");
+    } catch {
+      setStatus("error");
+    }
   };
 
   return (
@@ -37,13 +44,13 @@ export default function Contact() {
 
             <div className="space-y-4">
               <a
-                href="mailto:yannickvalderasm@gmail.com"
+                href="mailto:contacto@svasoft.cl"
                 className="flex items-center gap-3 text-gray-400 hover:text-amber-400 transition-colors text-sm group"
               >
                 <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center group-hover:bg-amber-500/10 transition-colors">
                   <Mail size={15} />
                 </div>
-                yannickvalderasm@gmail.com
+                contacto@svasoft.cl
               </a>
               <a
                 href="https://github.com/SvarogMyl"
@@ -61,17 +68,17 @@ export default function Contact() {
 
           {/* Right — form */}
           <div>
-            {sent ? (
+            {status === "sent" ? (
               <div className="h-full flex flex-col items-center justify-center text-center py-12">
                 <div className="w-14 h-14 bg-amber-500/10 rounded-full flex items-center justify-center mb-4">
                   <Send size={24} className="text-amber-400" />
                 </div>
-                <h3 className="font-semibold text-white mb-2">¡Listo!</h3>
+                <h3 className="font-semibold text-white mb-2">¡Mensaje enviado!</h3>
                 <p className="text-gray-400 text-sm">
-                  Se abrió tu cliente de email con el mensaje. Nos vemos pronto.
+                  Te respondemos en menos de 24 horas a <span className="text-amber-400">{form.email}</span>.
                 </p>
                 <button
-                  onClick={() => setSent(false)}
+                  onClick={() => { setStatus("idle"); setForm({ name: "", email: "", message: "" }); }}
                   className="mt-6 text-xs text-gray-500 hover:text-amber-400 transition-colors"
                 >
                   Enviar otro mensaje
@@ -112,12 +119,29 @@ export default function Contact() {
                     placeholder="Cuéntanos tu proyecto o idea..."
                   />
                 </div>
+
+                {status === "error" && (
+                  <p className="text-red-400 text-xs text-center">
+                    Hubo un error al enviar. Intenta de nuevo o escríbenos a contacto@svasoft.cl
+                  </p>
+                )}
+
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-semibold text-sm px-6 py-3 rounded-lg transition-colors"
+                  disabled={status === "sending"}
+                  className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-60 disabled:cursor-not-allowed text-black font-semibold text-sm px-6 py-3 rounded-lg transition-colors"
                 >
-                  Enviar mensaje
-                  <Send size={14} />
+                  {status === "sending" ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      Enviar mensaje
+                      <Send size={14} />
+                    </>
+                  )}
                 </button>
                 <p className="text-xs text-gray-600 text-center">
                   Respondemos en menos de 24 horas.

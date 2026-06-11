@@ -35,7 +35,7 @@ export default async function NoticiasPage() {
 
           {/* Articles grid */}
           {articles.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 gap-8">
               {articles.map((article) => (
                 <ArticleCard key={article.id} article={article} />
               ))}
